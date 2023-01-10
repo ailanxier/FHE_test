@@ -1,0 +1,7 @@
+#ifndef HELIB_SETTING_H
+#define HELIB_SETTING_H
+
+#define HElib_RECV_BUF_MAXSIZE 100000 
+#define HElib_RECV_BUF_MINSIZE 1024
+
+#endif

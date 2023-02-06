@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string>
+#include <general_setting.h>
 
 #define SOUT std::cout
 #define ENDL std::endl
@@ -43,9 +44,10 @@ void print_one_star_line(){
  * @param words indefinite lists of string
  * @param highlight_pos Not highlighted by default (= 0). 
  *      A value greater than zero indicates where the word is to be highlighted (1-indexed).
- * 
+ * @param segment_flag print one line of '*' after this line by default (= true).
+ *      A `bool` to determine whether to print '*'.
  **/
-void print_words(std::initializer_list<std::string> words, int highlight_pos = 0){
+void print_words(std::initializer_list<std::string> words, int highlight_pos = 0, bool segment_flag = true){
     if(highlight_pos > words.size()){
         SOUT << COUT_RED << "cout warning: highlight_pos is out of bounds" 
              << COUT_END_COLOR << ENDL;
@@ -60,6 +62,8 @@ void print_words(std::initializer_list<std::string> words, int highlight_pos = 0
         i++;
     }
     SOUT << ENDL;
+    if(segment_flag)
+        print_one_star_line();
 }
 
 #endif

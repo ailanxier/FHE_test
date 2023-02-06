@@ -4,13 +4,11 @@
 #include <sys/time.h>
 #include <algorithm>
 #include <iterator>
-#include <util_cout.h>
-#include <util_socket.h>
+#include <util.h>
 
 int main(int argc, char **argv){
     // 套接字连接初始化
     int server_sfd = socket_server_init();
-
     struct sockaddr_in peeraddr;
     socklen_t peerlen = sizeof(peeraddr);
     int server_connsfd;
@@ -18,43 +16,36 @@ int main(int argc, char **argv){
         ERR_EXIT("server error: fail to be accepted by the client");
     print_words({"server: socket is accepted by client"});
     
-    // 接收含有FHEcontext和publicKey的iotest.txt文件
-    recv_file(server_connsfd, recv_file_name);
+    // 接收同态加密上下文，公钥和要计算的密文
+    recv_file(server_connsfd, helib_server_context_fileName);
+    std::ifstream helib_server_ifile(helib_server_context_fileName, std::fstream::in);
+    helib::Context helib_server_context = helib::Context::readFrom(helib_server_ifile);
+    helib::PubKey helib_server_pk = helib::PubKey::readFrom(helib_server_ifile, helib_server_context);
+    helib::Ctxt helib_server_ctxt = helib::Ctxt::readFrom(helib_server_ifile, helib_server_pk);
+    helib_server_ifile.close();
+    // Print the security level
+    print_words({"HElib: security level is", TOS(helib_server_context.securityLevel())}, 2);
 
-    sleep(1);    
-    // 密文数组
-    // Ctxt* ctxt[4];
-    // for (int i = 0; i < 4; i++)
-    //     ctxt[i] = new Ctxt(publicKey);
-    print_words({"server: start receiving ciphertexts"}, 1);
-    char *ctxt_buf[4];
-    for (int i = 0; i < 4; i++){        
-        char* buf = new char[HElib_RECV_BUF_MAXSIZE];
-        ctxt_buf[i] = new char[HElib_RECV_BUF_MAXSIZE];
-        int bytes_read = recv(server_connsfd, buf, HElib_RECV_BUF_MAXSIZE, 0);
-        if(bytes_read < 0)
-            ERR_EXIT("server error: fail to receive ciphertext from client");
+    // 密文计算
+    helib_server_ctxt.multiplyBy(helib_server_ctxt);
+    helib_server_ctxt += helib_server_ctxt;
+    helib::Ptxt<helib::BGV> ptxt(helib_server_context);
+    
+    // ptxt = [0] [1] [2] ... [nslots-2] [nslots-1]
+    for (int i = 0; i < ptxt.size(); i++)
+        ptxt[i] = 1;
+    helib_server_ctxt.addConstant(ptxt);
 
-        print_words({"server: size of the received ciphertext: ", TOS(bytes_read)}, 2);
-        print_words({"server: the received ciphertext is:", buf}, 2);
-        print_one_star_line();
-        stpcpy(ctxt_buf[i], buf);
-        delete buf;
-    }
-    print_words({"server: start sending result ciphertexts"}, 1);
-    print_one_star_line();
-    // 对密文进行运算
+    // 保存结果密文到文件
+    std::ofstream helib_server_ofile(helib_server_result_filename, std::fstream::out | std::fstream::trunc);
+    if(helib_server_ofile.is_open())
+        helib_server_ctxt.writeTo(helib_server_ofile);
+    else
+        ERR_EXIT("server error: fail to open file to save ctxt");
+    helib_server_ofile.close();
 
-    // 把用户信息密文返回到客户端
-    for (int i = 0; i < 4; i++){
-        print_words({"server: size of the result ciphertext: ", TOS(strlen(ctxt_buf[i]))}, 2);
-        print_words({"server: the result ciphertext is:", ctxt_buf[i]}, 2);
-        print_one_star_line();
-
-        if (send(server_connsfd, ctxt_buf[i], strlen(ctxt_buf[i]), 0) < 0)
-            ERR_EXIT("server error: fail to send result to client");
-        sleep(1);
-    }
+    // 发送保存结果密文的文件
+    send_file(server_connsfd, helib_server_result_filename);
     print_words({"server: finish successfully"}, 1);
     return 0;
 }

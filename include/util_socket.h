@@ -15,6 +15,7 @@
 #include <netinet/in.h>
 #include <util_cout.h>
 #include <util_string.h>
+#include <HElib_setting.h>
 #include <general_setting.h>
 
 #define CLIENT_PORT 5555
@@ -32,7 +33,7 @@ int socket_client_init(){
     if((client_sfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         ERR_EXIT("client error: fail to build socket");
 
-    print_words({"client: socket fd is", TOS(client_sfd)}, 2);
+    print_words({"client: socket fd is", TOS(client_sfd)}, 2, NO_STAR_LINE);
     struct sockaddr_in client_addr;
     client_addr.sin_family = AF_INET;
     client_addr.sin_port = htons(CLIENT_PORT);
@@ -57,21 +58,16 @@ int socket_server_init(){
     if((server_sfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         ERR_EXIT("server error: fail to build socket");
 
-    print_words({"server: socket fd is", TOS(server_sfd)}, 2);
+    print_words({"server: socket fd is", TOS(server_sfd)}, 2, NO_STAR_LINE);
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(SERVER_PORT);
     server_addr.sin_addr.s_addr = htonl(SERVER_IP);
-    
-    // 调用close(socket)（一般不会立即关闭而经历TIME_WAIT的过程）后想继续重用该socket
-    // int reuse=1;
-    // if(setsockopt(server_sfd, SOL_SOCKET, SO_REUSEADDR, (const char*)& reuse, sizeof(int)) < 0)
-    //     ERR_EXIT("setsockopt err");
 
     // 服务器端将套接字与特定的 IP 地址和端口绑定
     if(bind(server_sfd, (struct sockaddr* )&server_addr, sizeof(server_addr)) < 0)
         ERR_EXIT("server error: fail to bind socket");
-    print_words({"server: binding socket"});
+    print_words({"server: binding socket"}, 0, NO_STAR_LINE);
 
     // 服务器端让套接字进入被动监听状态
     if(listen(server_sfd, SOMAXCONN) < 0)
@@ -86,10 +82,8 @@ int socket_server_init(){
  * @param file_name name of the file to be sent
  **/
 void send_file(int sfd, const char* file_name){
-    print_one_star_line();
-    print_words({"start sending file <", file_name, ">"}, 2);
+    print_words({"start sending file <", file_name, ">"}, 2, NO_STAR_LINE);
     int length = 0;
-    char buf[SEND_BUF_MAXSIZE];
 
     // 只读方式打开
     FILE *fp = fopen(file_name, "r");
@@ -97,7 +91,8 @@ void send_file(int sfd, const char* file_name){
         ERR_EXIT("send error: file does not exist");
     else{
         // 循环发送数据,直到文件读完为止
-        while((length = fread(buf, sizeof(char), sizeof(buf), fp)) > 0){
+        char* buf = new char[HElib_SEND_BUF_MAXSIZE];
+        while((length = fread(buf, sizeof(char), HElib_SEND_BUF_MAXSIZE, fp)) > 0){
             buf[length] = '\0';
             // 发送数据包的大小
             if(send(sfd, &length, sizeof(length), 0) < 0)
@@ -105,9 +100,9 @@ void send_file(int sfd, const char* file_name){
             // 发送数据包的内容
             if(send(sfd, buf, length, 0) < 0)
                 ERR_EXIT("send error: fail to send the ciphertext");
-            print_words({"sending: size of the sent ciphertext: ", TOS(length)}, 2);
-            print_words({"sending: the sent ciphertext is:", buf}, 2);
-            print_one_star_line();
+            print_words({"sending: size of the sent ciphertext: ", TOS(length)}, 2, NO_STAR_LINE);
+            // print_words({"sending: the sent ciphertext is:", buf}, 2);
+            sleep(1);
         }
         // 读取文件完成, 发送 0 数据包
         length = 0;
@@ -116,7 +111,6 @@ void send_file(int sfd, const char* file_name){
     // 关闭文件    
     fclose(fp);
     print_words({"send file <", file_name, "> successfully"}, 2);
-    print_one_star_line();
 }
 
 /**
@@ -125,15 +119,14 @@ void send_file(int sfd, const char* file_name){
  * @param file_name name of the file to be saved
  **/
 void recv_file(int connsfd, const char* file_name){
-    print_one_star_line();
-    print_words({"recv: start receiving file"}, 1);
-    char buf[HElib_RECV_BUF_MINSIZE];
+    print_words({"recv: start receiving file"}, 1, NO_STAR_LINE);
     int length = 0;
     // 以可写方式创建文件
     FILE *fp = fopen(file_name, "w");
     if(fp == NULL)
         ERR_EXIT("recv error: fail to open file");
     while(true){
+        char* buf = new char[HElib_SEND_BUF_MAXSIZE];
         // 接收数据包的大小
         if(recv(connsfd, &length, sizeof(length), MSG_WAITALL) < 0)
             ERR_EXIT("recv error: fail to receive length of the ciphertext");
@@ -144,45 +137,73 @@ void recv_file(int connsfd, const char* file_name){
         if(recv(connsfd, buf, length, MSG_WAITALL) < 0)
             ERR_EXIT("recv error: fail to receive name of the file");
         buf[length] = '\0';
-        print_words({"receiving: the length of received ciphertext is", TOS(length)}, 2);
-        print_words({"receiving: the received ciphertext is:", buf}, 2);
-        print_one_star_line();
+        print_words({"receiving: the length of received ciphertext is", TOS(length)}, 2, NO_STAR_LINE);
+        // print_words({"receiving: the received ciphertext is:", buf}, 2);
         if(fwrite(buf, sizeof(char), length, fp) < length)
             ERR_EXIT("recv error: fail to save ciphertext to file");
     }
     fclose(fp);
     print_words({"recv: receive file successfully"}, 1);
-    print_one_star_line();
 }
 
+/* function for testing
+void server_recv_ciphertext(int num, int sfd, char* ctxt_buf[]){
+    print_words({"server: start receiving ciphertexts"}, 1, NO_STAR_LINE);
+    for (int i = 0; i < num; i++){        
+        char* buf = new char[HElib_RECV_BUF_MINSIZE];
+        ctxt_buf[i] = new char[HElib_RECV_BUF_MINSIZE];
+        int bytes_read = recv(sfd, buf, HElib_RECV_BUF_MINSIZE, 0);
+        if(bytes_read < 0)
+            ERR_EXIT("server error: fail to receive ciphertext from client");
+
+        print_words({"server: size of the received ciphertext: ", TOS(bytes_read)}, 2, NO_STAR_LINE);
+        print_words({"server: the received ciphertext is:", buf}, 2);
+        stpcpy(ctxt_buf[i], buf);
+        delete buf;
+    }
+}
+
+void server_send_ciphertext(int num, int sfd, char* ctxt_buf[]){
+    print_words({"server: start sending result ciphertexts"}, 1, NO_STAR_LINE);
+    // 把用户信息密文返回到客户端
+    for (int i = 0; i < num; i++){
+        print_words({"server: size of the result ciphertext: ", TOS(strlen(ctxt_buf[i]))}, 2, NO_STAR_LINE);
+        print_words({"server: the result ciphertext is:", ctxt_buf[i]}, 2);
+        if (send(sfd, ctxt_buf[i], strlen(ctxt_buf[i]), 0) < 0)
+            ERR_EXIT("server error: fail to send result to client");
+        sleep(1);
+    }
+}
+
+// 发送文件名
+int send_filename(int sfd,char* filename)
+{
+    int len=0;
+    char buf[128] = {0};
+
+    strcpy(buf,filename);
+    len = strlen(buf);
+    //printf("%d\n",len);
+    send(sfd,&len,sizeof(len),0);
+    send(sfd,buf,len,0);
+}
+
+
+//接收文件名,
+int recv_filename(int conn,char** name)
+{
+    int file_len =0;
+    int r=0;
+
+    if((r=recv(conn,&file_len,sizeof(file_len),MSG_WAITALL)) <= 0)
+        exit(1);
+    if((r = recv(conn,(*name),file_len,MSG_WAITALL)) <= 0)
+        exit(1);
+    (*name)[file_len] = 0;  // 接收到文件名后加/0
+    //printf("// %s //\n",*name);
+
+    return  0;
+}
+
+*/
 #endif
-
-// // 发送文件名
-// int send_filename(int sfd,char* filename)
-// {
-//     int len=0;
-//     char buf[128] = {0};
-
-//     strcpy(buf,filename);
-//     len = strlen(buf);
-//     //printf("%d\n",len);
-//     send(sfd,&len,sizeof(len),0);
-//     send(sfd,buf,len,0);
-// }
-
-
-// //接收文件名,
-// int recv_filename(int conn,char** name)
-// {
-//     int file_len =0;
-//     int r=0;
-
-//     if((r=recv(conn,&file_len,sizeof(file_len),MSG_WAITALL)) <= 0)
-//         exit(1);
-//     if((r = recv(conn,(*name),file_len,MSG_WAITALL)) <= 0)
-//         exit(1);
-//     (*name)[file_len] = 0;  // 接收到文件名后加/0
-//     //printf("// %s //\n",*name);
-
-//     return  0;
-// }

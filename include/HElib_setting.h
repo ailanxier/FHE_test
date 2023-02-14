@@ -3,14 +3,13 @@
 
 #include <helib/FHE.h>
 
-#define HElib_RECV_BUF_MAXSIZE 10000000 
-#define HElib_RECV_BUF_MINSIZE 10000
-#define HElib_SEND_BUF_MAXSIZE 10000000
+#define RECV_BUF_MAXSIZE 10000000 
+#define SEND_BUF_MAXSIZE 10000000
 
 // 保存 HElib 上下文和密文的文件名
-const char* helib_client_context_fileName = "helib_client_context.txt";
-const char* helib_server_context_fileName = "helib_server_context.txt";
-const char* helib_client_result_filename = "helib_client_result.txt";
-const char* helib_server_result_filename = "helib_server_result.txt";
+const char* client_send_fileName = "helib_client_send.txt";
+const char* server_recv_fileName = "helib_server_recv.txt";
+const char* client_result_filename = "helib_client_result.txt";
+const char* server_result_filename = "helib_server_result.txt";
 
 #endif

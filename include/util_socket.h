@@ -13,10 +13,10 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <netinet/in.h>
-#include <util_cout.h>
-#include <util_string.h>
-#include <HElib_setting.h>
-#include <general_setting.h>
+#include "util_cout.h"
+#include "util_string.h"
+#include "OpenFHE_setting.h"
+#include "general_setting.h"
 
 #define CLIENT_PORT 5555
 #define SERVER_PORT 5555
@@ -40,7 +40,7 @@ int socket_client_init(){
     inet_aton(CLIENT_IP, &client_addr.sin_addr);
     bzero(&client_addr.sin_zero, sizeof client_addr.sin_zero);
 
-    print_words({"client: connecting server"});
+    print("client: connecting server", 0);
     // 客户端向指定的服务器和端口发送连接请求
     if(connect(client_sfd, (struct sockaddr* )&client_addr, sizeof(client_addr)) < 0)
         ERR_EXIT("client error: fail to connect server");
@@ -67,12 +67,12 @@ int socket_server_init(){
     // 服务器端将套接字与特定的 IP 地址和端口绑定
     if(bind(server_sfd, (struct sockaddr* )&server_addr, sizeof(server_addr)) < 0)
         ERR_EXIT("server error: fail to bind socket");
-    print_words({"server: binding socket"}, 0, NO_STAR_LINE);
+    print("server: binding socket", 0, NO_STAR_LINE);
 
     // 服务器端让套接字进入被动监听状态
     if(listen(server_sfd, SOMAXCONN) < 0)
         ERR_EXIT("server error: fail to listen request");
-    print_words({"server: listening socket"});
+    print("server: listening socket", 0);
     return server_sfd;
 }
 
@@ -91,8 +91,8 @@ void send_file(int sfd, const char* file_name){
         ERR_EXIT("send error: file does not exist");
     else{
         // 循环发送数据,直到文件读完为止
-        char* buf = new char[HElib_SEND_BUF_MAXSIZE];
-        while((length = fread(buf, sizeof(char), HElib_SEND_BUF_MAXSIZE, fp)) > 0){
+        char* buf = new char[SEND_BUF_MAXSIZE];
+        while((length = fread(buf, sizeof(char), SEND_BUF_MAXSIZE, fp)) > 0){
             buf[length] = '\0';
             // 发送数据包的大小
             if(send(sfd, &length, sizeof(length), 0) < 0)
@@ -126,7 +126,7 @@ void recv_file(int connsfd, const char* file_name){
     if(fp == NULL)
         ERR_EXIT("recv error: fail to open file");
     while(true){
-        char* buf = new char[HElib_SEND_BUF_MAXSIZE];
+        char* buf = new char[RECV_BUF_MAXSIZE];
         // 接收数据包的大小
         if(recv(connsfd, &length, sizeof(length), MSG_WAITALL) < 0)
             ERR_EXIT("recv error: fail to receive length of the ciphertext");
@@ -139,20 +139,20 @@ void recv_file(int connsfd, const char* file_name){
         buf[length] = '\0';
         print_words({"receiving: the length of received ciphertext is", TOS(length)}, 2, NO_STAR_LINE);
         // print_words({"receiving: the received ciphertext is:", buf}, 2);
-        if(fwrite(buf, sizeof(char), length, fp) < length)
+        if((int)fwrite(buf, sizeof(char), length, fp) < length)
             ERR_EXIT("recv error: fail to save ciphertext to file");
     }
     fclose(fp);
-    print_words({"recv: receive file successfully"}, 1);
+    print("recv: receive file successfully");
 }
 
 /* function for testing
 void server_recv_ciphertext(int num, int sfd, char* ctxt_buf[]){
     print_words({"server: start receiving ciphertexts"}, 1, NO_STAR_LINE);
     for (int i = 0; i < num; i++){        
-        char* buf = new char[HElib_RECV_BUF_MINSIZE];
-        ctxt_buf[i] = new char[HElib_RECV_BUF_MINSIZE];
-        int bytes_read = recv(sfd, buf, HElib_RECV_BUF_MINSIZE, 0);
+        char* buf = new char[OpenFHE_RECV_BUF_MINSIZE];
+        ctxt_buf[i] = new char[OpenFHE_RECV_BUF_MINSIZE];
+        int bytes_read = recv(sfd, buf, OpenFHE_RECV_BUF_MINSIZE, 0);
         if(bytes_read < 0)
             ERR_EXIT("server error: fail to receive ciphertext from client");
 

@@ -3,7 +3,8 @@
 
 #include <iostream>
 #include <string>
-#include <general_setting.h>
+#include <iomanip>
+#include "general_setting.h"
 
 #define SOUT std::cout
 #define ENDL std::endl
@@ -37,7 +38,7 @@
  * @param star_num number of stars (default is 50)
  **/
 void print_one_star_line(int star_num = 50){
-    SOUT << std::setw(star_num) << std::setfill('*') << ENDL;
+    SOUT << std::setw(star_num) << std::setfill('*') << "\n";
 }
 
 /**
@@ -49,22 +50,36 @@ void print_one_star_line(int star_num = 50){
  *      A `bool` to determine whether to print '*'.
  **/
 void print_words(std::initializer_list<std::string> words, int highlight_pos = 0, bool segment_flag = true){
-    if(highlight_pos > words.size()){
-        SOUT << COUT_RED << "cout warning: highlight_pos is out of bounds" 
-             << COUT_END_COLOR << ENDL;
-        highlight_pos = 0;
-    }
-    int i = 1;
-    for(const auto& word : words){
-        if(i == highlight_pos)
-            SOUT << COUT_GREEN << word << COUT_END_COLOR << " ";
-        else 
-            SOUT << word << " ";
-        i++;
-    }
-    SOUT << ENDL;
-    if(segment_flag)
-        print_one_star_line();
+    #ifdef DEBUG
+        if(highlight_pos > (int)words.size()){
+            SOUT << COUT_RED << "cout warning: highlight_pos is out of bounds" 
+                << COUT_END_COLOR << ENDL;
+            highlight_pos = 0;
+        }
+        int i = 1;
+        for(const auto& word : words){
+            if(i == highlight_pos)
+                SOUT << COUT_GREEN << word << COUT_END_COLOR << " ";
+            else 
+                SOUT << word << " ";
+            i++;
+        }
+        SOUT << ENDL;
+        if(segment_flag)
+            print_one_star_line();
+    #endif
+}
+
+/**
+ * @brief a simple wrapper for "print_words()" when just printing one string
+ * @param word one string
+ * @param highlight_pos the string will be highlighted by default (= 1), otherwise 
+ *      otherwise it will not be highlighted (= 0).
+ * @param segment_flag print one line of '*' after this line by default (= true).
+ *      A `bool` to determine whether to print '*'.
+ **/
+void print(std::string word, int highlight_pos = 1, bool segment_flag = true){
+    print_words({word}, highlight_pos, segment_flag);
 }
 
 #endif

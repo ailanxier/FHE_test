@@ -6,8 +6,8 @@
 #include <iomanip>
 #include "general_setting.h"
 
-#define SOUT std::cout
-#define ENDL std::endl
+using std::cout;
+using std::endl;
 #define COUT_RED "\033[31m"
 #define COUT_GREEN "\033[32m"
 #define COUT_END_COLOR "\033[0m"
@@ -38,7 +38,7 @@
  * @param star_num number of stars (default is 50)
  **/
 void print_one_star_line(int star_num = 50){
-    SOUT << std::setfill('*') << std::setw(star_num)  << "\n";
+    cout << std::setfill('*') << std::setw(star_num)  << "\n";
 }
 
 /**
@@ -52,19 +52,19 @@ void print_one_star_line(int star_num = 50){
 void print_words(std::initializer_list<std::string> words, int highlight_pos = 0, bool segment_flag = true){
     #ifdef DEBUG
         if(highlight_pos > words.size()){
-            SOUT << COUT_RED << "cout warning: highlight_pos is out of bounds" 
-                << COUT_END_COLOR << ENDL;
+            cout << COUT_RED << "cout warning: highlight_pos is out of bounds" 
+                << COUT_END_COLOR << endl;
             highlight_pos = 0;
         }
         int i = 1;
         for(const auto& word : words){
             if(i == highlight_pos)
-                SOUT << COUT_GREEN << word << COUT_END_COLOR << " ";
+                cout << COUT_GREEN << word << COUT_END_COLOR << " ";
             else 
-                SOUT << word << " ";
+                cout << word << " ";
             i++;
         }
-        SOUT << ENDL;
+        cout << endl;
         if(segment_flag)
             print_one_star_line();
     #endif

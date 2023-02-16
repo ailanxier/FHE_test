@@ -53,5 +53,5 @@ endif()
 ###
 ### EXAMPLE:
 ### add_executable( test demo-simple-example.cpp )
-add_executable(client client.cpp)
-add_executable(server server.cpp)
+add_executable(openfhe_test openfhe_test.cpp)
+# add_executable(server server.cpp)

@@ -11,10 +11,8 @@
 #define SEND_BUF_MAXSIZE 10000000
 
 // 保存 OpenFHE 上下文和密文的文件名
-const char* client_send_fileName = "openfhe_client_send";
-const char* server_recv_fileName = "openfhe_server_recv";
-const char* client_result_filename = "openfhe_client_result";
-const char* server_result_filename = "openfhe_server_result";
+const char* info_fileName = "info.txt";
+const char* result_filename = "result.txt";
 
 // const char* client_pk_fileName = "openfhe_client_pk";
 // const char* server_pk_fileName = "openfhe_server_pk";

@@ -1,118 +1,117 @@
-#include "OpenFHE_setting.h"
-#include "util.h"
-
-// OpenFHE 的命名空间
-using namespace lbcrypto;
+#include "openfhe_test.h"
 
 int main(int argc, char **argv){
-    print("---------------------OpenFHE---------------------");
-    print("client: Initialising context object ...");
-    // 客户端设置加密上下文参数
-    CCParams<CryptoContextBGVRNS> parameters;
-    parameters.SetMultiplicativeDepth(2);
-    parameters.SetPlaintextModulus(65537);
+    Print("---------------------OpenFHE---------------------");
+    // ԭʼ����
+try{
+    client_init_context();
+    client_encrypt_data();
+    server_init_context();
+    auto apiSequnce = msg.apisequence().apilist();
 
-    CryptoContext<DCRTPoly> client_context = GenCryptoContext(parameters);
-    // Enable features that you wish to use
-    client_context->Enable(PKE);
-    client_context->Enable(KEYSWITCH);
-    client_context->Enable(LEVELEDSHE);
+    // rescale after multiplication in FIXEDMANUAL mode
+    #define isRescaleManual (std::dynamic_pointer_cast<CryptoParametersCKKSRNS>(server_context->GetCryptoParameters())->GetScalingTechnique() == FIXEDMANUAL)
+    for(auto api : apiSequnce){
+        int dst = api.dst();
+        if(api.has_addtwolist()){
+            int src1 = api.addtwolist().src1();
+            int src2 = api.addtwolist().src2();
+            Print_words({"addtwo src1:", ToStr(src1), ", src2: ", ToStr(src2), ", dst: ", ToStr(dst)}, 1, NO_STAR_LINE);
+            vector_add(data[src1], data[src2], data[dst]);
+            server_ctxts[dst] = server_context->EvalAdd(server_ctxts[src1], server_ctxts[src2]);
+        }else if(api.has_addconstant()){
+            int src = api.addconstant().src();
+            double num = api.addconstant().num();
+            Print_words({"addconstant src:", ToStr(src), ", num: ", ToStr(num), ", dst: ", ToStr(dst)}, 1, NO_STAR_LINE);
+            vector_add(data[src], num, data[dst]);
+            server_ctxts[dst] = server_context->EvalAdd(server_ctxts[src], num);
+        }else if(api.has_addmanylist()){
+            vector<Ciphertext<DCRTPoly>> temp_many_ctxts;
+            vector<dataType> temp(dataLen, 0);
+            Print("addmany src:", 1, NO_STAR_LINE);
+            for(auto& src : api.addmanylist().srcs()){
+                temp_many_ctxts.push_back(server_ctxts[src]);
+                vector_add(temp, data[src], temp);
+                Printf("%d ", src);
+            }
+            data[dst].assign(temp.begin(), temp.end());
+            Printf("dst: %d\n", dst);
+            server_ctxts[dst] = server_context->EvalAddMany(temp_many_ctxts);
+        }else if(api.has_subtwolist()){
+            int src1 = api.subtwolist().src1();
+            int src2 = api.subtwolist().src2();
+            Print_words({"subtwo src1:", ToStr(src1), ", src2: ", ToStr(src2), ", dst: ", ToStr(dst)}, 1, NO_STAR_LINE);
+            vector_sub(data[src1], data[src2], data[dst]);
+            server_ctxts[dst] = server_context->EvalSub(server_ctxts[src1], server_ctxts[src2]);
+        }else if(api.has_subconstant()){
+            int src = api.subconstant().src();
+            double num = api.subconstant().num();
+            Print_words({"subconstant src:", ToStr(src), ", num: ", ToStr(num), ", dst: ", ToStr(dst)}, 1, NO_STAR_LINE);
+            vector_sub(data[src], num, data[dst]);
+            server_ctxts[dst] = server_context->EvalSub(server_ctxts[src], num);
+        }else if(api.has_multwolist()){
+            int src1 = api.multwolist().src1();
+            int src2 = api.multwolist().src2();
+            Print_words({"multwo src1:", ToStr(src1), ", src2: ", ToStr(src2), ", dst: ", ToStr(dst)}, 1, NO_STAR_LINE);
+            vector_mul(data[src1], data[src2], data[dst]);
+            server_ctxts[dst] = server_context->EvalMult(server_ctxts[src1], server_ctxts[src2]);
+        }else if(api.has_mulconstant()){
+            int src = api.mulconstant().src();
+            double num = api.mulconstant().num();
+            Print_words({"mulconstant src:", ToStr(src), ", num: ", ToStr(num), ", dst: ", ToStr(dst)}, 1, NO_STAR_LINE);
+            vector_mul(data[src], num, data[dst]);
+            server_ctxts[dst] = server_context->EvalMult(server_ctxts[src], num);
+        }else if(api.has_mulmanylist()){
+            vector<Ciphertext<DCRTPoly>> temp_many_ctxts;
+            vector<dataType> temp(dataLen, 1);
+            Print("mulmany src:", 1, NO_STAR_LINE);
+            for(auto& src : api.mulmanylist().srcs()){
+                temp_many_ctxts.push_back(server_ctxts[src]);
+                vector_mul(temp, data[src], temp);
+                Printf("%d ", src);
+            }
+            Printf("dst: %d\n", dst);
+            data[dst].assign(temp.begin(), temp.end());
+            server_ctxts[dst] = server_context->EvalMultMany(temp_many_ctxts);
+        }else if(api.has_linearweightedsum()){
+            vector<ConstCiphertext<DCRTPoly>> temp_many_ctxts;
+            vector<dataType> res(dataLen, 0), mul_temp(dataLen, 0);
+            vector<double> weights(api.linearweightedsum().weights().begin(), api.linearweightedsum().weights().end());
+            Print("linearweightedsum src:", 1, NO_STAR_LINE);
+            int i = 0;
+            for(auto& src : api.linearweightedsum().srcs()){
+                temp_many_ctxts.push_back(server_ctxts[src]);
+                vector_mul(data[src], weights[i++], mul_temp);
+                vector_add(res, mul_temp, res);
+                Printf("%d ", src);
+            }
+            Printf("dst: %d\n", dst);
+            data[dst].assign(res.begin(), res.end());
+            server_ctxts[dst] = server_context->EvalLinearWSum(temp_many_ctxts, weights);
+        }else if(api.has_shiftonelist()){
+            int src = api.shiftonelist().src();
+            int index = api.shiftonelist().index();
+            Print_words({"shiftone src:", ToStr(src), ", index: ", ToStr(index), ", dst: ", ToStr(dst)}, 1, NO_STAR_LINE);
+            data[dst].assign(data[src].begin(), data[src].end());
+            if(index < 0) 
+                std::rotate(data[dst].begin(), data[dst].begin() + dataLen + index, data[dst].end());
+            else
+                std::rotate(data[dst].begin(), data[dst].begin() + index, data[dst].end());
+            server_ctxts[dst] = server_context->EvalRotate(server_ctxts[src], index);
+        }
+        if(isStrict && isRescaleManual)
+            server_ctxts[dst] = server_context->Rescale(server_ctxts[dst]);
+        // PrintAndCheckResult(true);
+        print_one_star_line();
+    }
 
-    // 将加密上下文写入文件
-    std::ofstream client_ofile(info_fileName, std::ios::out | std::ios::binary);
-    if(!client_ofile.is_open()) 
-        ERR_EXIT("client error: fail to open file to save context");
-    SerializeToStream(client_ofile, client_context, SerType::BINARY);
-    print("client: the cryptocontext has been serialized");
-
-    // 生成公私密钥
-    KeyPair<DCRTPoly> client_keyPair;
-    client_keyPair = client_context->KeyGen();    
-    SerializeToStream(client_ofile, client_keyPair.publicKey, SerType::BINARY);
-    print("client: the public key has been serialized");
-    
-    // Generate the relinearization key
-    client_context->EvalMultKeyGen(client_keyPair.secretKey);
-    // Serialize the relinearization (evaluation) key for homomorphic multiplication
-    if (!client_context->SerializeEvalMultKey(client_ofile, SerType::BINARY))
-        ERR_EXIT("client error: fail to write serialization of the eval mult keys");
-    print("client: the eval mult keys have been serialized");
-
-    std::vector<int64_t> v1 = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
-    Plaintext client_ptxt1  = client_context->MakePackedPlaintext(v1);
-    std::vector<int64_t> v2 = {10, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
-    Plaintext client_ptxt2  = client_context->MakePackedPlaintext(v2);
-    std::vector<int64_t> v3 = {10, 20, 30, 40, 50, 60, 70, 80, 90, 10, 11, 12};
-    Plaintext client_ptxt3  = client_context->MakePackedPlaintext(v3);
-
-    // The encoded vectors are encrypted
-    auto client_ctxt1 = client_context->Encrypt(client_keyPair.publicKey, client_ptxt1);
-    auto client_ctxt2 = client_context->Encrypt(client_keyPair.publicKey, client_ptxt2);
-    auto client_ctxt3 = client_context->Encrypt(client_keyPair.publicKey, client_ptxt3);
-    SerializeToStream(client_ofile, client_ctxt1, SerType::BINARY);
-    SerializeToStream(client_ofile, client_ctxt2, SerType::BINARY);
-    SerializeToStream(client_ofile, client_ctxt3, SerType::BINARY);
-    client_ofile.close();
-    print("client: three ciphertexts have been serialized");
-    // std::cout << "Plaintext #1: " << ptxt1 << std::endl;
-    
-    // ------------------------------------------
-    // 服务器端处理
-    std::ifstream server_ifile(info_fileName, std::ios::in | std::ios::binary);
-    if(!server_ifile.is_open()) 
-        ERR_EXIT("server error: fail to open file to load context");
-
-    // 从文件中解密上下文，公钥，评估密钥，密文
-    CryptoContext<DCRTPoly> server_context;
-    DeserializeFromStream(server_ifile, server_context, SerType::BINARY);
-    print("server: the cryptocontext has been deserialized");
-
-    PublicKey<DCRTPoly> server_pk;
-    DeserializeFromStream(server_ifile, server_pk, SerType::BINARY);
-    print("server: the public key has been deserialized");
-
-    if (!server_context->DeserializeEvalMultKey(server_ifile, SerType::BINARY)) 
-        ERR_EXIT("Could not deserialize the eval mult key file");
-    print("server: the eval mult keys has been deserialized");
-
-    Ciphertext<DCRTPoly> server_ctxt1, server_ctxt2, server_ctxt3;
-    DeserializeFromStream(server_ifile, server_ctxt1, SerType::BINARY);
-    DeserializeFromStream(server_ifile, server_ctxt2, SerType::BINARY);
-    DeserializeFromStream(server_ifile, server_ctxt3, SerType::BINARY);
-    server_ifile.close();
-    print("server: three ciphertexts have been deserialized");
-
-    // Homomorphic additions
-    auto server_ctxt_add_12 = server_context->EvalAdd(server_ctxt1, server_ctxt2); 
-    auto server_ctxt_add_123 = server_context->EvalAdd(server_ctxt_add_12, server_ctxt3); 
-    // Homomorphic multiplications
-    auto server_ctxt_mul_12 = server_context->EvalMult(server_ctxt1, server_ctxt2);   
-    auto server_ctxt_mul_123 = server_context->EvalMult(server_ctxt_mul_12, server_ctxt3);   
-
-    // 保存结果密文到文件
-    std::ofstream server_ofile(result_filename, std::ios::out | std::ios::binary);
-    if(!server_ofile.is_open())
-        ERR_EXIT("server error: fail to open file to save ctxt");
-    SerializeToStream(server_ofile, server_ctxt_add_123, SerType::BINARY);
-    SerializeToStream(server_ofile, server_ctxt_mul_123, SerType::BINARY);
-    server_ofile.close();
-    print("server: results have been serialized");
-
-    // ------------------------------------------
-    // 客户端解密
-    std::ifstream client_ifile(result_filename, std::ios::in | std::ios::binary);
-    Ciphertext<DCRTPoly> result_add_ctxt, result_mul_ctxt;
-    DeserializeFromStream(client_ifile, result_add_ctxt, SerType::BINARY);
-    DeserializeFromStream(client_ifile, result_mul_ctxt, SerType::BINARY);
-    client_ifile.close();
-    print("client: result have been deserialized");
-
-    // 将解密结果保存到明文中并打印
-    Plaintext client_result_add_ptxt, client_result_mul_ptxt;
-    client_context->Decrypt(client_keyPair.secretKey, result_add_ctxt, &client_result_add_ptxt);
-    client_context->Decrypt(client_keyPair.secretKey, result_mul_ctxt, &client_result_mul_ptxt);
-    std::cout << "#1 + #2 + #3: " << client_result_add_ptxt << std::endl;
-    std::cout << "#1 * #2 * #3: " << client_result_mul_ptxt << std::endl;
-    print("client: finish successfully");
+    Print("server: evaluation done");
+    server_serialize_result();
+    client_decrypt_data();
+    PrintAndCheckResult(true);
+}catch(openfhe_error& e){
+    THROW_EXCEPTION(e.what());
+}
+    printf("client: all result is correct.\n");
     return 0;
 }

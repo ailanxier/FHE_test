@@ -4,30 +4,31 @@
 #include <openfhe.h>
 #include <cryptocontext-ser.h>
 #include <key/key-ser.h>
-#include <scheme/bgvrns/bgvrns-ser.h>
+#include "scheme/ckksrns/ckksrns-ser.h"
 #include <ciphertext-ser.h>
+using namespace lbcrypto;
 
-#define RECV_BUF_MAXSIZE 10000000 
-#define SEND_BUF_MAXSIZE 10000000
+// ==================== test for CKKS ====================
 
-// 保存 OpenFHE 上下文和密文的文件名
-const char* info_fileName = "info.txt";
-const char* result_filename = "result.txt";
+// Some simple wrapper for OpenFHE Serialize() and Deserialize()
+template <typename T>
+inline void SerializeToStream(std::fstream& file, const T& obj, const SerType::SERBINARY& sertype) {
+    Serial::Serialize(obj, file, sertype);
+}
 
-// const char* client_pk_fileName = "openfhe_client_pk";
-// const char* server_pk_fileName = "openfhe_server_pk";
+template <typename T>
+inline void SerializeToStream(std::fstream& file, const CryptoContext<T>& obj, const SerType::SERBINARY& sertype) {
+    Serial::Serialize(obj, file, sertype);
+}
 
-// const char* client_ek_fileName = "openfhe_client_ek";
-// const char* server_ek_fileName = "openfhe_server_ek";
+template <typename T>
+inline void DeserializeFromStream(std::fstream& file, T& obj, const SerType::SERBINARY& sertype) {
+    Serial::Deserialize(obj, file, sertype);
+}
 
-// const char* client_c1_fileName = "openfhe_client_c1";
-// const char* server_c1_fileName = "openfhe_server_c1";
-// const char* client_c2_fileName = "openfhe_client_c2";
-// const char* server_c2_fileName = "openfhe_server_c2";
-// const char* client_c3_fileName = "openfhe_client_c3";
-// const char* server_c3_fileName = "openfhe_server_c3";
-
-// const char* client_result2_filename = "openfhe_client_result2";
-// const char* server_result2_filename = "openfhe_server_result2";
+template <typename T>
+inline void DeserializeFromStream(std::fstream& file, CryptoContext<T>& obj, const SerType::SERBINARY& sertype) {
+    Serial::Deserialize(obj, file, sertype);
+}
 
 #endif

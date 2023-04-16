@@ -72,3 +72,12 @@ cmake_install.cmake
 install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
+
+# AFL++ ================================
+afl/out/
+*.gcda
+*.gcno
+afl/*.txt
+**/openfhe_test
+afl/in/
+*.png

@@ -3,6 +3,6 @@
 
 #include <string>
 
-#define TOS std::to_string
-
+#define ToStr std::to_string
+#define SPACE_ENDL " \n"[i == dataLen - 1]
 #endif

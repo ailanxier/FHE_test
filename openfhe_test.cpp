@@ -1,17 +1,20 @@
 #include "openfhe_test.h"
 
 int main(int argc, char **argv){
+    // clear_all_data();
+    CryptoContext<DCRTPoly> client_context, server_context;
+    std::fstream info_fstream(info_fileName, std::ios::trunc | std::ios::in | std::ios::out | std::ios::binary);
+    std::fstream result_fstream(result_filename, std::ios::trunc | std::ios::in | std::ios::out | std::ios::binary);
     Print("---------------------OpenFHE---------------------");
     // 原始数据
 try{
-    client_init_context();
-    client_encrypt_data();
-    server_init_context();
-    auto apiSequnce = msg.apisequence().apilist();
+    client_init_context(argv[1], client_context, info_fstream);
+    client_encrypt_data(client_context, info_fstream);
+    server_init_context(server_context, info_fstream, result_fstream);
 
     // rescale after multiplication in FIXEDMANUAL mode
     #define isRescaleManual (std::dynamic_pointer_cast<CryptoParametersCKKSRNS>(server_context->GetCryptoParameters())->GetScalingTechnique() == FIXEDMANUAL)
-    for(auto api : apiSequnce){
+    for(auto api : msg.apisequence().apilist()){
         int dst = api.dst();
         if(api.has_addtwolist()){
             int src1 = api.addtwolist().src1();
@@ -88,30 +91,39 @@ try{
             Printf("dst: %d\n", dst);
             data[dst].assign(res.begin(), res.end());
             server_ctxts[dst] = server_context->EvalLinearWSum(temp_many_ctxts, weights);
-        }else if(api.has_shiftonelist()){
-            int src = api.shiftonelist().src();
-            int index = api.shiftonelist().index();
-            Print_words({"shiftone src:", ToStr(src), ", index: ", ToStr(index), ", dst: ", ToStr(dst)}, 1, NO_STAR_LINE);
+        }else if(api.has_rotateonelist()){
+            int src = api.rotateonelist().src();
+            int index = api.rotateonelist().index();
+            Print_words({"rotateone src:", ToStr(src), ", index: ", ToStr(index), ", dst: ", ToStr(dst)}, 1, NO_STAR_LINE);
             data[dst].assign(data[src].begin(), data[src].end());
+            server_ctxts[dst] = server_context->EvalRotate(server_ctxts[src], index);
+            index %= dataLen;
             if(index < 0) 
                 std::rotate(data[dst].begin(), data[dst].begin() + dataLen + index, data[dst].end());
             else
                 std::rotate(data[dst].begin(), data[dst].begin() + index, data[dst].end());
-            server_ctxts[dst] = server_context->EvalRotate(server_ctxts[src], index);
         }
-        if(isStrict && isRescaleManual)
-            server_ctxts[dst] = server_context->Rescale(server_ctxts[dst]);
-        // PrintAndCheckResult(true);
+        int level = server_ctxts[dst]->GetLevel();
+        int noise = server_ctxts[dst]->GetNoiseScaleDeg();
+        Print_words({"level:", ToStr(level), ", Noise:", ToStr(noise)}, 2, NO_STAR_LINE);
+        maxLevel = std::max(maxLevel, level);
+        if(argc >= 3 && argv[2][0] == 'c')
+            PrintAndCheckResult(client_context, true);
+        if(maxLevel > muldepth) 
+            THROW_EXCEPTION("Need to increase muldepth.");
         print_one_star_line();
     }
 
     Print("server: evaluation done");
-    server_serialize_result();
-    client_decrypt_data();
-    PrintAndCheckResult(true);
+    server_serialize_result(result_fstream);
+    client_decrypt_data(client_context, result_fstream);
+    PrintAndCheckResult(client_context, true);
 }catch(openfhe_error& e){
     THROW_EXCEPTION(e.what());
 }
-    printf("client: all result is correct.\n");
+    if(isAllCorrect)
+        Printf("client: all result is correct.\n");
+    else
+        THROW_EXCEPTION("client: some result is wrong.");
     return 0;
 }

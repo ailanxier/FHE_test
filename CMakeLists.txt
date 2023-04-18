@@ -33,7 +33,7 @@ message("PROTOBUF_INCLUDE_DIRS: ${PROTOBUF_INCLUDE_DIRS}")
 
 if(BUILD_STATIC)
     set( CMAKE_EXE_LINKER_FLAGS "${OpenFHE_EXE_LINKER_FLAGS}")
-    link_libraries(asan ${OpenFHE_STATIC_LIBRARIES} /usr/local/lib/afl/afl-gcc-rt.o)
+    link_libraries(asan ${OpenFHE_STATIC_LIBRARIES} /usr/local/lib/afl/afl-compiler-rt-64.o)
     message("OpenFHE_STATIC_LIBRARIES: ${OpenFHE_STATIC_LIBRARIES}")
 	# add_compile_options(-fsanitize=address )
 else()

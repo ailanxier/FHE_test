@@ -4,5 +4,5 @@
 #include <string>
 
 #define ToStr std::to_string
-#define SPACE_ENDL " \n"[i == dataLen - 1]
+#define SPACE_ENDL " \n"[i == frontLen - 1]
 #endif

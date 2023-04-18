@@ -79,5 +79,10 @@ afl/out/
 *.gcno
 afl/*.txt
 **/openfhe_test
+**/openfhe_ckks_test
 afl/in/
 *.png
+debug_build/
+**/graph/
+google_afl/
+slave/

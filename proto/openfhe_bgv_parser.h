@@ -1,19 +1,24 @@
-#ifndef OPENFHE_CKKS_PARSER_H
-#define OPENFHE_CKKS_PARSER_H
+#ifndef OPENFHE_BGV_PARSER_H
+#define OPENFHE_BGV_PARSER_H
 
 #include "util_cout.h"
 #include "util_string.h"
 #include "OpenFHE_setting.h"
-#include "/root/Refine_Protobuf_Mutator/proto/proto_setting.h"
+#include "proto_setting.h"
 
 // parse the protobuf message to FHE parameters
-void Message2FHEParameters(const Root& msg, CCParams<CryptoContextCKKSRNS>& parameters, 
+void Message2FHEParameters(const Root& msg, CCParams<CryptoContextBGVRNS>& parameters, 
         CryptoContext<DCRTPoly>& context, KeyPair<DCRTPoly>& keyPair){
     auto param = msg.param();
+    
     if(param.has_multiplicativedepth())
-            parameters.SetMultiplicativeDepth(param.multiplicativedepth());
+        parameters.SetMultiplicativeDepth(param.multiplicativedepth());
     parameters.SetPlaintextModulus(param.plaintextmodulus());
-    parameters.SetBatchSize(param.batchsize());
+    // TEST: use default value
+    // if(param.has_scaltech())
+    //     parameters.SetScalingTechnique((ScalingTechnique)param.scaltech());
+    if(param.has_batchsize())
+        parameters.SetBatchSize(param.batchsize());
     parameters.SetDigitSize(param.digitsize());
     if(param.has_standarddeviation())
         parameters.SetStandardDeviation(param.standarddeviation());
@@ -23,10 +28,7 @@ void Message2FHEParameters(const Root& msg, CCParams<CryptoContextCKKSRNS>& para
         parameters.SetMaxRelinSkDeg(param.maxrelinskdeg());
     if(param.has_kstech())
         parameters.SetKeySwitchTechnique((KeySwitchTechnique)param.kstech());
-    if(param.has_scaltech())
-        parameters.SetScalingTechnique((ScalingTechnique)param.scaltech());
-    if(param.has_firstmodsize())
-        parameters.SetFirstModSize(param.firstmodsize());
+    parameters.SetFirstModSize(param.firstmodsize());
     parameters.SetScalingModSize(param.scalingmodsize());
     parameters.SetNumLargeDigits(param.numlargedigits());
     parameters.SetSecurityLevel((SecurityLevel)param.securitylevel());
@@ -41,45 +43,33 @@ void Message2FHEParameters(const Root& msg, CCParams<CryptoContextCKKSRNS>& para
         parameters.SetPREMode((ProxyReEncryptionMode)param.premode());
     if(param.has_multipartymode())
         parameters.SetMultipartyMode((MultipartyMode)param.multipartymode());
-    parameters.SetExecutionMode((ExecutionMode)param.executionmode());
-    parameters.SetDecryptionNoiseMode((DecryptionNoiseMode)param.decryptionnoisemode());
+        
     parameters.SetNoiseEstimate(param.noiseestimate());
-    if(param.has_desiredprecision())
-        parameters.SetDesiredPrecision(param.desiredprecision());
+    parameters.SetDesiredPrecision(param.desiredprecision());
     if(param.has_statisticalsecurity())
         parameters.SetStatisticalSecurity(param.statisticalsecurity());
     if(param.has_numadversarialqueries())
         parameters.SetNumAdversarialQueries(param.numadversarialqueries());
 
+    cout<<parameters<<endl;
     // generate context
     context = GenCryptoContext(parameters);
-    if(param.pke())
-        context->Enable(PKE);
-    if(param.keyswitch())
-        context->Enable(KEYSWITCH);       
+    context->Enable(PKE);
+    context->Enable(KEYSWITCH);       
+    context->Enable(LEVELEDSHE);
+    context->Enable(ADVANCEDSHE);
     if(param.pre())
         context->Enable(PRE);
-    if(param.leveledshe())
-        context->Enable(LEVELEDSHE);
-    if(param.advancedshe())
-        context->Enable(ADVANCEDSHE);
     if(param.multiparty())
         context->Enable(MULTIPARTY);
-    keyPair = context->KeyGen();
-    context->EvalMultKeyGen(keyPair.secretKey);
     if(param.fhe())
         context->Enable(FHE);
-    vector<int> shiftIndexes;
-    std::set<int>s;
-    for(auto api : msg.apisequence().apilist()){
-        if(api.has_shiftonelist()) {
-            int index = api.shiftonelist().index();
-            s.insert(index);
-        }
-    }
-    for(auto it : s) shiftIndexes.push_back(it);
-    if(shiftIndexes.size() > 0)
-        context->EvalRotateKeyGen(keyPair.secretKey, shiftIndexes);
+    keyPair = context->KeyGen();
+    context->EvalMultKeyGen(keyPair.secretKey);
+    vector<int> rotateIndexes(param.rotateindexes().begin(), param.rotateindexes().end());
+    // cout << "rotateIndexes: " << rotateIndexes << endl;
+    if(rotateIndexes.size() > 0)
+        context->EvalRotateKeyGen(keyPair.secretKey, rotateIndexes);
 }
 
 #endif

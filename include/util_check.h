@@ -1,32 +1,30 @@
 #ifndef UTIL_CHECK_H
 #define UTIL_CHECK_H
 
+#define PTXT_MOD_OFFSET(num) (num < 0 ? num + ptxt_mod : num)
 #include "util_cout.h"
-constexpr double EPSILON = 0.0001;
+constexpr double EPSILON = 0.001;
 
-// OpenFHE assumes that plaintext is in the range of [-p/2, p/2]
-// #define PTXT_MOD_OFFSET(num) (num < 0 ? num + ptxt_mod : num)
 
 /**
  * Function to check equality of 2 numeric vectors
  *
- * @param a      first vector to compare
- * @param b      second vector to compare
- * @param eps    minimum precision to consider a and b equal. Default is EPSILON
+ * @param a              first vector to compare
+ * @param b              second vector to compare
+ * @param ptxt_mod       plaintext modulus
+ * @return               true if a and b are equal, false otherwise
  */
 template<typename T>
-void checkEquality(const std::vector<T>& a,
-                   const std::vector<T>& b,
-                   const double eps = EPSILON) {
+bool checkEquality(const std::vector<T>& a,
+                   const std::vector<T>& b, dataType ptxt_mod) {
     if(a.size() != b.size())
         ERROR_EXIT("Result has invalid length");
-
-    bool cmp = std::equal(a.begin(), a.end(), b.begin(), [&eps](const T& a, const T& b) {
-        // return abs(a - PTXT_MOD_OFFSET(b)) <= eps; 
-        return abs(a - b) <= eps; 
+        // OpenFHE assumes that plaintext is in the range of [-p/2, p/2]
+    
+    bool cmp = std::equal(a.begin(), a.end(), b.begin(), [&](const T& x, const T& y) {
+        return x == PTXT_MOD_OFFSET(y);
     });
-    if(!cmp) 
-        ERROR_EXIT("Result is wrong.");
+    return cmp;
 }
 
 #endif

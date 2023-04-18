@@ -4,11 +4,11 @@
 #include <openfhe.h>
 #include <cryptocontext-ser.h>
 #include <key/key-ser.h>
-#include "scheme/ckksrns/ckksrns-ser.h"
+#include "scheme/bgvrns/bgvrns-ser.h"
 #include <ciphertext-ser.h>
 using namespace lbcrypto;
 
-// ==================== test for CKKS ====================
+// ==================== test for BGV ====================
 
 // Some simple wrapper for OpenFHE Serialize() and Deserialize()
 template <typename T>

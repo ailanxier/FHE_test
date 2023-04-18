@@ -9,6 +9,6 @@ using std::cout;
 using std::endl;
 using std::vector;
 using std::string;
-using dataType = double;
+using dataType = int64_t;
 
 #endif

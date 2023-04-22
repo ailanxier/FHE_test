@@ -1,5 +1,4 @@
-#ifndef UTIL_CHECK_H
-#define UTIL_CHECK_H
+#pragma once
 
 #define PTXT_MOD_OFFSET(num) (num < 0 ? num + ptxt_mod : num)
 #include "util_cout.h"
@@ -19,12 +18,10 @@ bool checkEquality(const std::vector<T>& a,
                    const std::vector<T>& b, dataType ptxt_mod) {
     if(a.size() != b.size())
         ERROR_EXIT("Result has invalid length");
-        // OpenFHE assumes that plaintext is in the range of [-p/2, p/2]
     
+    // OpenFHE assumes that plaintext is in the range of [-p/2, p/2]
     bool cmp = std::equal(a.begin(), a.end(), b.begin(), [&](const T& x, const T& y) {
         return x == PTXT_MOD_OFFSET(y);
     });
     return cmp;
 }
-
-#endif

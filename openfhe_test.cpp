@@ -90,7 +90,7 @@ try{
         ERROR_EXIT("server error: fail to open file to save ctxt");
     server_serialize_result();
     getTime();
-    client_decrypt_data(client_context);
+    client_decrypt_data();
     getTime();
     std::remove(result_fileName.c_str());
     PrintAndCheckResult(true);

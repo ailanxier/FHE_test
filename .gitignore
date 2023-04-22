@@ -89,3 +89,8 @@ debug_build/
 google_afl/
 slave/
 exe/
+bgv_afl/**
+!bgv_afl/master.sh
+LPM*/
+RPM*/
+lpm*/

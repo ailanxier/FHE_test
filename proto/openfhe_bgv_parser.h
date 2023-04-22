@@ -1,5 +1,4 @@
-#ifndef OPENFHE_BGV_PARSER_H
-#define OPENFHE_BGV_PARSER_H
+#pragma once
 
 #include "util_cout.h"
 #include "util_string.h"
@@ -71,5 +70,3 @@ void Message2FHEParameters(const Root& msg, CCParams<CryptoContextBGVRNS>& param
     if(rotateIndexes.size() > 0)
         context->EvalRotateKeyGen(keyPair.secretKey, rotateIndexes);
 }
-
-#endif

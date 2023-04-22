@@ -1,5 +1,4 @@
-#ifndef GENERAL_SETTING_H
-#define GENERAL_SETTING_H
+#pragma once
 
 #define NO_STAR_LINE 0
 #define AFL_CRASH_CODE 111
@@ -11,4 +10,3 @@ using std::vector;
 using std::string;
 using dataType = int64_t;
 
-#endif

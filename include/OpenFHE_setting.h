@@ -1,6 +1,4 @@
-#ifndef OPENFHE_SETTING_H
-#define OPENFHE_SETTING_H
-
+#pragma once
 #include <openfhe.h>
 #include <cryptocontext-ser.h>
 #include <key/key-ser.h>
@@ -30,5 +28,3 @@ template <typename T>
 inline void DeserializeFromStream(std::fstream& file, CryptoContext<T>& obj, const SerType::SERBINARY& sertype) {
     Serial::Deserialize(obj, file, sertype);
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef UTIL_COUT_H
-#define UTIL_COUT_H
+#pragma once
 
 #include <iostream>
 #include <string>
@@ -124,5 +123,3 @@ inline void Printf(const char* fmt, ...){
         va_end(args);
     #endif
 }
-
-#endif

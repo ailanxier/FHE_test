@@ -1,6 +1,3 @@
-#ifndef PROTOBUF_PARSER_H
-#define PROTOBUF_PARSER_H
+#pragma once
 
 #include "openfhe_bgv_parser.h"
-
-#endif

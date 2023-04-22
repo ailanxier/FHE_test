@@ -1,5 +1,4 @@
-#ifndef OPENFHE_TEST_H
-#define OPENFHE_TEST_H
+#pragma once
 
 #include "OpenFHE_setting.h"
 #include "protobuf_parser.h"
@@ -76,8 +75,10 @@ inline void client_encrypt_data(){
     for(int i = 0; i < dataNum; i++){
         auto dataList = alldataList[i].datalist();
         int j = 0;
-        for(auto num : dataList)
+        for(auto num : dataList){
             data[i][j++] = NOT_NEG_MOD(num);
+            if(j >= dataLen) break;
+        }
         frontLen = std::max(frontLen, j);
     }
     for(int i = 0; i < dataNum; i++){
@@ -115,17 +116,14 @@ inline void server_init_context(){
 
 // The server saves the result ciphertext to a file and releases memory
 void server_serialize_result(){
-    // server_ctxts.resize(dataNum);
-    for(auto& ctxt : server_ctxts){
+    for(auto& ctxt : server_ctxts)
         SerializeToStream(result_fstream, ctxt, SerType::BINARY);
-        // ctxt.reset();
-    }
     Print("server: results have been serialized");
     result_fstream.seekp(std::ios::beg);
 }
 
 // The client recovers the result ciphertext and decrypts it
-inline void client_decrypt_data(CryptoContext<DCRTPoly> &client_context){
+inline void client_decrypt_data(){
     vector<Ciphertext<DCRTPoly>> client_ctxts(dataNum);
     for(auto& ctxt : client_ctxts)
         DeserializeFromStream(result_fstream, ctxt, SerType::BINARY);
@@ -147,7 +145,6 @@ inline void client_decrypt_data(CryptoContext<DCRTPoly> &client_context){
  * @param check determines whether to perform differential comparison.
  **/
 inline void PrintAndCheckResult(bool check = false){
-    // bool canTolerate = (maxLevel >= (int)muldepth);
     isAllCorrect = true;
     // Print("answer:", 1, NO_STAR_LINE);
     // for(int j = 0; j < dataNum; j++){
@@ -174,7 +171,6 @@ inline void PrintAndCheckResult(bool check = false){
                 for(int i = 0; i < frontLen; i++) Printf("%ld%c", PTXT_MOD_OFFSET(fhe_result[i]), SPACE_ENDL);
                 Print_words({"client: the evaluation result", ToStr(j), "is", wrong_result}, 2);
                 isAllCorrect = false;
-                // if(!canTolerate)
                 ERROR_EXIT("client: the evaluation result is wrong");
             }
         }
@@ -225,5 +221,3 @@ inline void clear_all_data(){
     vector<Plaintext>().swap(client_result_ptxts);
 }
 
-
-#endif

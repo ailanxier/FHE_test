@@ -1,23 +1,21 @@
 #include "openfhe_test.h"
 
-std::fstream info_fstream, result_fstream;
+
 int main(int argc, char **argv){
-    Print("---------------------OpenFHE---------------------");
-    CryptoContext<DCRTPoly> client_context, server_context;
+    Print("--------------------- OpenFHE CKKS ---------------------");
+    // start = std::chrono::high_resolution_clock::now();
     std::random_device rd;
     string info_fileName = "info" + ToStr(rd());
     string result_fileName = "result" + ToStr(rd());
     info_fstream.open(info_fileName, std::ios::trunc | std::ios::in | std::ios::out | std::ios::binary);
     if(!info_fstream.is_open()) 
         ERROR_EXIT("client error: fail to open file to save context");
-    // 原始数据
+
 try{
-    client_init_context(argv[1], client_context, info_fstream);
-    client_encrypt_data(client_context, info_fstream);
-    server_init_context(server_context, info_fstream);
+    client_init_context(argv[1]);
+    client_encrypt_data();
+    server_init_context();
     std::remove(info_fileName.c_str());
-    // rescale after multiplication in FIXEDMANUAL mode
-    #define isRescaleManual (std::dynamic_pointer_cast<CryptoParametersCKKSRNS>(server_context->GetCryptoParameters())->GetScalingTechnique() == FIXEDMANUAL)
     for(auto api : msg.apisequence().apilist()){
         int dst = api.dst();
         if(api.has_addtwolist()){
@@ -112,7 +110,7 @@ try{
         Print_words({"level:", ToStr(level), ", Noise:", ToStr(noise)}, 2, NO_STAR_LINE);
         maxLevel = std::max(maxLevel, level);
         if(argc >= 3 && argv[2][0] == 'c')
-            PrintAndCheckResult(client_context, true);
+            PrintAndCheckResult(true);
         if(maxLevel > muldepth) 
             THROW_EXCEPTION("Need to increase muldepth.");
         print_one_star_line();
@@ -122,10 +120,10 @@ try{
     result_fstream.open(result_fileName, std::ios::trunc | std::ios::in | std::ios::out | std::ios::binary);
     if(!result_fstream.is_open())
         ERROR_EXIT("server error: fail to open file to save ctxt");
-    server_serialize_result(result_fstream);
-    client_decrypt_data(client_context, result_fstream);
+    server_serialize_result();
+    client_decrypt_data();
     std::remove(result_fileName.c_str());
-    PrintAndCheckResult(client_context, true);
+    PrintAndCheckResult(true);
 }catch(openfhe_error& e){
     std::remove(info_fileName.c_str());
     std::remove(result_fileName.c_str());

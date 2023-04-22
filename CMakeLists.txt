@@ -27,7 +27,7 @@ link_directories( ${OPENMP_LIBRARIES} )
 # Protobuf input
 find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIRS})
-set(PROTO_SRC_DIR ${CMAKE_SOURCE_DIR}/../Refine_Protobuf_Mutator/proto)
+set(PROTO_SRC_DIR ${CMAKE_SOURCE_DIR}/proto)
 include_directories(PROTO_SRC_DIR)
 message("PROTOBUF_INCLUDE_DIRS: ${PROTOBUF_INCLUDE_DIRS}")
 
@@ -35,13 +35,13 @@ if(BUILD_STATIC)
     set( CMAKE_EXE_LINKER_FLAGS "${OpenFHE_EXE_LINKER_FLAGS}")
     link_libraries(asan ${OpenFHE_STATIC_LIBRARIES} /usr/local/lib/afl/afl-compiler-rt-64.o)
     message("OpenFHE_STATIC_LIBRARIES: ${OpenFHE_STATIC_LIBRARIES}")
-	# add_compile_options(-fsanitize=address )
 else()
     set( CMAKE_EXE_LINKER_FLAGS ${OpenFHE_EXE_LINKER_FLAGS} )
     link_libraries( ${OpenFHE_SHARED_LIBRARIES} )
     message("OpenFHE_SHARED_LIBRARIES: ${OpenFHE_SHARED_LIBRARIES}")
 endif()
 
+# ======================= OPENFHE-CKKS =======================
 set(PROTO_SRC ${PROTO_SRC_DIR}/openfhe_ckks.pb.cc)
 add_executable(openfhe_ckks_test openfhe_test.cpp ${PROTO_SRC})
 target_link_libraries(openfhe_ckks_test ${PROTOBUF_LIBRARIES})

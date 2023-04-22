@@ -1,5 +1,4 @@
-#ifndef UTIL_COUT_H
-#define UTIL_COUT_H
+#pragma once
 
 #include <iostream>
 #include <string>
@@ -8,8 +7,9 @@
 #include "general_setting.h"
 #include "util_string.h"
 
-#define COUT_RED "\033[31m"
+#define COUT_RED "\033[38;5;197m"
 #define COUT_GREEN "\033[32m"
+#define COUT_BLUE "\033[34m"
 #define COUT_END_COLOR "\033[0m"
 #define __output(...) \
     printf(__VA_ARGS__);
@@ -30,7 +30,8 @@
 #define ERROR_EXIT(error_message)\
     do{\
         TRACE_FILE_LINE_FUNCTION("error occurred.");\
-        perror(error_message);\
+        string error_str = (string)COUT_RED + (string)error_message + (string)COUT_END_COLOR;\
+        cout<< error_str << endl; \
         abort();\
         exit(AFL_CRASH_CODE);\
     }while(0)
@@ -42,7 +43,8 @@
 #define THROW_EXCEPTION(throw_message)\
     do{\
         TRACE_FILE_LINE_FUNCTION("fhe throw exception.");\
-        printf("throw message: %s\n", throw_message);\
+        string throw_str = (string)COUT_BLUE + (string)throw_message + (string)COUT_END_COLOR;\
+        cout<< throw_str << endl;\
         exit(0);\
     }while(0)
 
@@ -121,5 +123,3 @@ inline void Printf(const char* fmt, ...){
         va_end(args);
     #endif
 }
-
-#endif

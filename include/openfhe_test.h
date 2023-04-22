@@ -1,28 +1,35 @@
-#ifndef OPENFHE_TEST_H
-#define OPENFHE_TEST_H
+#pragma once
 
 #include "OpenFHE_setting.h"
 #include "protobuf_parser.h"
 #include "util.h"
 #include <random>
-
+#include <chrono>
 // frontLen is used for debugging
 int dataLen, dataNum, frontLen;
-
+std::fstream info_fstream, result_fstream;
 CCParams<CryptoContextCKKSRNS> parameters;
 KeyPair<DCRTPoly> client_keyPair;
 PublicKey<DCRTPoly> server_pk;
 vector<vector<dataType>> data;
 vector<Ciphertext<DCRTPoly>> server_ctxts;
 vector<Plaintext> client_result_ptxts;
+CryptoContext<DCRTPoly> client_context, server_context;
 Root msg;
 int maxLevel = 0;
 bool isAllCorrect;
 int muldepth = 0;
+std::chrono::_V2::system_clock::time_point start;
+
+inline void getTime(){ 
+    // auto end = std::chrono::high_resolution_clock::now();
+    // auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    // start = end;
+    // Print_words({(string)COUT_RED + "use time: ", ToStr(duration.count()), "ms" + (string)(COUT_END_COLOR)}, 1, NO_STAR_LINE);
+}
 
 // Homomorphic context environment configuration for the client
-void client_init_context(char* path, CryptoContext<DCRTPoly>& client_context, std::fstream& info_fstream){
-    // std::ifstream data_ifile("../../Refine_Protobuf_Mutator/proto_seed/bin/" + ToStr(num) +".txt", std::ios::in);
+void client_init_context(char* path){
     std::ifstream data_ifile(path, std::ios::in | std::ios::binary);
     if(!data_ifile.is_open()) 
         ERROR_EXIT("client error: fail to open data file");
@@ -51,10 +58,11 @@ void client_init_context(char* path, CryptoContext<DCRTPoly>& client_context, st
     if (msg.param().rotateindexes_size() > 0 && !client_context->SerializeEvalAutomorphismKey(info_fstream, SerType::BINARY))
         ERROR_EXIT("client error: fail to write serialization of the rotation keys");
     Print("client: the rotation keys have been serialized");
+    getTime();
 }
 
 // Encrypt the original information on the client side and write it into a file
-void client_encrypt_data(CryptoContext<DCRTPoly>& client_context, std::fstream& info_fstream){
+void client_encrypt_data(){
     auto alldataList = msg.evaldata().alldatalists();
     dataLen = client_context->GetEncodingParams()->GetBatchSize();
     dataNum = alldataList.size();
@@ -65,8 +73,10 @@ void client_encrypt_data(CryptoContext<DCRTPoly>& client_context, std::fstream& 
     for(int i = 0; i < dataNum; i++){
         auto dataList = alldataList[i].datalist();
         int j = 0;
-        for(auto num : dataList)
+        for(auto num : dataList){
             data[i][j++] = num;
+            if(j >= dataLen) break;
+        }
         frontLen = std::max(frontLen, j);
     }
     for(int i = 0; i < dataNum; i++){
@@ -77,11 +87,11 @@ void client_encrypt_data(CryptoContext<DCRTPoly>& client_context, std::fstream& 
     Print("client: ciphertexts have been serialized");
     // Set the file stream back to the beginning of the file.
     info_fstream.seekp(std::ios::beg);
+    getTime();
 }
 
 // The server recovers the context environment and ciphertext from the file 
-void server_init_context(CryptoContext<DCRTPoly> &server_context, std::fstream& info_fstream){
-    server_ctxts.resize(dataNum);
+void server_init_context(){
     DeserializeFromStream(info_fstream, server_context, SerType::BINARY);
     //Print("server: the cryptocontext has been deserialized");
 
@@ -96,26 +106,29 @@ void server_init_context(CryptoContext<DCRTPoly> &server_context, std::fstream& 
         ERROR_EXIT("Could not deserialize the rotation keys file");
     //Print("server: the rotation keys has been deserialized");
 
-    for(auto& ctxt : server_ctxts)
+    server_ctxts.resize(dataNum);
+    getTime();
+    for(auto& ctxt : server_ctxts){
         DeserializeFromStream(info_fstream, ctxt, SerType::BINARY);
-
+        getTime();
+    }
     info_fstream.close();
     Print("server: ciphertexts have been deserialized");    
 }
 
 // The server saves the result ciphertext to a file and releases memory
-void server_serialize_result(std::fstream& result_fstream){
-    server_ctxts.resize(dataNum);
+void server_serialize_result(){
     for(auto& ctxt : server_ctxts){
         SerializeToStream(result_fstream, ctxt, SerType::BINARY);
         // ctxt.reset();
     }
-    //Print("server: results have been serialized");
+    Print("server: results have been serialized");
     result_fstream.seekp(std::ios::beg);
+    getTime();
 }
 
 // The client recovers the result ciphertext and decrypts it
-void client_decrypt_data(CryptoContext<DCRTPoly> &client_context, std::fstream& result_fstream){
+void client_decrypt_data(){
     vector<Ciphertext<DCRTPoly>> client_ctxts(dataNum);
     for(auto& ctxt : client_ctxts)
         DeserializeFromStream(result_fstream, ctxt, SerType::BINARY);
@@ -129,6 +142,7 @@ void client_decrypt_data(CryptoContext<DCRTPoly> &client_context, std::fstream& 
         client_result_ptxts[i]->SetLength(dataLen);
     }
     Print("client: result have been decrypted");
+    getTime();
 }
 
 /**
@@ -136,7 +150,7 @@ void client_decrypt_data(CryptoContext<DCRTPoly> &client_context, std::fstream& 
  *       debugging and result comparison.
  * @param check determines whether to perform differential comparison.
  **/
-void PrintAndCheckResult(CryptoContext<DCRTPoly>& client_context,  bool check = false){
+void PrintAndCheckResult(bool check = false){
     bool canTolerate = (maxLevel >= (int)muldepth);
     isAllCorrect = true;
     // Print("answer:", 1, NO_STAR_LINE);
@@ -174,6 +188,7 @@ void PrintAndCheckResult(CryptoContext<DCRTPoly>& client_context,  bool check = 
                     ERROR_EXIT("client: the evaluation result is wrong");
             }
         }
+        getTime();
     }
 }
 
@@ -238,4 +253,3 @@ void clear_all_data(){
     vector<Ciphertext<DCRTPoly>>().swap(server_ctxts);
     vector<Plaintext>().swap(client_result_ptxts);
 }
-#endif

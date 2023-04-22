@@ -1,10 +1,9 @@
-#ifndef OPENFHE_CKKS_PARSER_H
-#define OPENFHE_CKKS_PARSER_H
+#pragma once
 
 #include "util_cout.h"
 #include "util_string.h"
 #include "OpenFHE_setting.h"
-#include "/root/Refine_Protobuf_Mutator/proto/proto_setting.h"
+#include "proto_setting.h"
 
 // parse the protobuf message to FHE parameters
 void Message2FHEParameters(const Root& msg, CCParams<CryptoContextCKKSRNS>& parameters, 
@@ -52,6 +51,7 @@ void Message2FHEParameters(const Root& msg, CCParams<CryptoContextCKKSRNS>& para
     if(param.has_numadversarialqueries())
         parameters.SetNumAdversarialQueries(param.numadversarialqueries());
 
+    cout<<parameters<<endl;
     // generate context
     context = GenCryptoContext(parameters);
     context->Enable(PKE);
@@ -71,5 +71,3 @@ void Message2FHEParameters(const Root& msg, CCParams<CryptoContextCKKSRNS>& para
     if(rotateIndexes.size() > 0)
         context->EvalRotateKeyGen(keyPair.secretKey, rotateIndexes);
 }
-
-#endif
